@@ -4,7 +4,7 @@
 
 import argparse, os
 import seaborn as sns
-from ete2 import Tree
+from ete3 import Tree
 from itertools import combinations
 import pandas as pd
 from Bio import SeqIO
