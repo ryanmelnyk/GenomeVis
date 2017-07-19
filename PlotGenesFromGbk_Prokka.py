@@ -49,7 +49,7 @@ def plot(seq, span, coords, name, GC, labels):
 		gdgc_set.new_graph(get_GC_content(seq), "GC content", style="line")
 
 
-	cl = [colors.HexColor(c) for c in sns.color_palette().as_hex()]
+	cl = [colors.HexColor(c) for c in sns.color_palette("GnBu_d").as_hex()]
 	count = 0
 	for feat in seq.features:
 		if feat.type == "CDS":
