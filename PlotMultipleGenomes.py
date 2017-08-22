@@ -23,17 +23,20 @@ and color-code surrounding genes based on homology.
 	return parser.parse_args()
 
 def parse_genbank(g):
-	if g[2] == "ensembl":
+	if g[2] == "ensembl" or g[2] == "refseq":
 		FIELD = "protein_id"
 	elif g[2] == "prokka":
 		FIELD = "locus_tag"
 	for seq in SeqIO.parse(open(g[0],'r'),"genbank"):
 		for feat in seq.features:
 			if feat.type == "CDS":
-				if feat.qualifiers[FIELD][0] == g[1]:
-					print "Found", g[1], "in", seq.id
-					print "loc:",feat.location
-					return seq, (int(feat.location.start), int(feat.location.end))
+				try:
+					if feat.qualifiers[FIELD][0] == g[1]:
+						print "Found", g[1], "in", seq.id
+						print "loc:",feat.location
+						return seq, (int(feat.location.start), int(feat.location.end))
+				except KeyError:
+					pass
 
 	print "locus not found. try again."
 	sys.exit()
@@ -41,7 +44,7 @@ def parse_genbank(g):
 
 def plot(seq, span, coords, g, GD, count, locus_tags, labels):
 
-	if g[2] == "ensembl":
+	if g[2] == "ensembl" or g[2] == "refseq":
 		FIELD = "protein_id"
 	elif g[2] == "prokka":
 		FIELD = "locus_tag"
@@ -61,16 +64,16 @@ def plot(seq, span, coords, g, GD, count, locus_tags, labels):
 				newloc = FeatureLocation(feat.location.start-(coords[0]-(span/2)),feat.location.end-(coords[0]-(span/2)),strand=feat.strand)
 				feat.location = newloc
 				print newloc
-				if g[2] == "prokka":
+				if g[2] == "prokka" or g[2] == "refseq":
 					feature_set.add_feature(feat, sigil="BIGARROW", arrowshaft_height=1, arrowhead_length=.4,color="#D3D3D3", \
 						label=labels,name=feat.qualifiers['product'][0],label_strand=1,label_size = 8,label_position="middle", label_angle=20, \
 						border=colors.black)
 				feature_set.add_feature(feat, sigil="BIGARROW", arrowshaft_height=1, arrowhead_length=.4,color="#D3D3D3", \
 					label=True,name=feat.qualifiers[FIELD][0],label_strand=-1,label_size = 8,label_position="middle", label_angle=90, \
 					border=colors.black)
-				locus_tags[g[0].split(".")[0]].append(feat.qualifiers[FIELD][0])
+				locus_tags[g[0].split(".")[0]].append(feat.qualifiers[FIELD][0].split(".")[0])
 		elif feat.type == "gene":
-			if g[2] == "ensembl":
+			if g[2] == "ensembl" or g[2] == "refseq":
 				if int(feat.location.start) > (coords[0]-(span/2)) and int(feat.location.end) < (coords[1]+(span/2)):
 					newloc = FeatureLocation(feat.location.start-(coords[0]-(span/2)),feat.location.end-(coords[0]-(span/2)),strand=feat.strand)
 					feat.location = newloc
@@ -97,6 +100,7 @@ def write(GD,name,span):
 def find_homologs(GD, locus_tags, locus_mat):
 	groups = {}
 	count = 0
+	print locus_tags
 	for line in open(locus_mat,'r'):
 		vals = [v.split(".")[0] for v in [x.split(";") for x in line.rstrip().split("\t")] for v in v]
 		found = []
@@ -118,8 +122,8 @@ def change_colors(GD, groups):
 	for t in GD.get_tracks():
 		for s in t.get_sets():
 			for feat in s.get_features():
-				if feat.name in groups:
-					feat.color = cl[groups[feat.name]]
+				if feat.name.split(".")[0] in groups:
+					feat.color = cl[groups[feat.name.split(".")[0]]]
 	return
 
 def main():

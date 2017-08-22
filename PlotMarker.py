@@ -14,9 +14,10 @@ Take a given group from PyParanoid and plot it on a tree, recursively over branc
 	parser.add_argument('treefile', type=str,help='path to Newick format Tree')
 	parser.add_argument('pypdir',type=str,help="path to PyParanoid directory")
 	parser.add_argument('group',type=str,help="name of group")
+	parser.add_argument('--width',type=int,help="width of image, in inches")
 	return parser.parse_args()
 
-def parse_tree(treefile, datadict, group):
+def parse_tree(treefile, datadict, group,width):
 	ts = TreeStyle()
 	tree = Tree(os.path.abspath(treefile))
 
@@ -56,7 +57,7 @@ def parse_tree(treefile, datadict, group):
 			nstyle["size"] = 3*math.sqrt(len(this_node))
 		node.set_style(nstyle)
 
-	tree.render(group+".png",tree_style=ts,w=12,units="in")
+	tree.render(group+".png",tree_style=ts,w=width,units="in")
 	return
 
 def parse_pyp(pypdir,group):
@@ -71,10 +72,12 @@ def parse_pyp(pypdir,group):
 
 def main():
 	args = parse_args()
-
+	if args.width:
+		width = args.width
+	else:
+		width = 12
 	datadict = parse_pyp(os.path.abspath(args.pypdir),args.group)
-	# pprint.pprint(datadict)
-	parse_tree(args.treefile, datadict, args.group)
+	parse_tree(args.treefile, datadict, args.group,width)
 
 
 if __name__ == '__main__':
