@@ -27,7 +27,7 @@ def dist_from_tree(tree_loc):
 	return leaves
 
 def make_matrix(outdir,strains,groups):
-	df = {}
+	dat = {}
 	for g in groups:
 		present = []
 		for seq in SeqIO.parse(open(os.path.join(outdir,"homolog_faa",g[0]+".faa"),'r'),'fasta'):
@@ -36,15 +36,14 @@ def make_matrix(outdir,strains,groups):
 		for seq in SeqIO.parse(open(os.path.join(outdir,"prop_homolog_faa",g[0]+".faa"),'r'),'fasta'):
 			if str(seq.id).split("|")[0] not in present:
 				present.append(str(seq.id).split("|")[0])
-		df[g[1]] = pd.Series(dict(zip(strains,[present.count(s) for s in strains])))
-	return pd.DataFrame(df).reindex(strains)
+		dat[g[1]] = pd.Series(dict(zip(strains,[present.count(s) for s in strains])))
+	df = pd.DataFrame(dat).reindex(strains)
+	cols = [x[1] for x in groups]
+	return df[cols]
 
 def plot_clustergrid(df,prefix,groups,dpi):
 	fig, ax = plt.subplots()
 	hm = sns.heatmap(df, linewidths=.4,cbar=False,cmap="Greens",ax=ax,square=True,xticklabels=["" for x in range(df.shape[1])],yticklabels=["" for x in range(df.shape[0])])
-	# plt.setp(hm.ax_heatmap.yaxis.get_majorticklabels(), rotation=0)
-
-	# hm.set_yticklabels(rotation=0, ha='right')
 	ax.yaxis.tick_right()
 	plt.yticks(rotation=0)
 	plt.xticks(rotation=-40)
