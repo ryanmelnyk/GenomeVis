@@ -15,9 +15,10 @@ Take a given group from PyParanoid and plot it on a tree, recursively over branc
 	parser.add_argument('pypdir',type=str,help="path to PyParanoid directory")
 	parser.add_argument('group',type=str,help="name of group")
 	parser.add_argument('--width',type=int,help="width of image, in inches")
+	parser.add_argument('--compress',type=str,help="comma separated list of species to collapse nodes")
 	return parser.parse_args()
 
-def parse_tree(treefile, datadict, group,width):
+def parse_tree(treefile, datadict, group,width,compress):
 	ts = TreeStyle()
 	tree = Tree(os.path.abspath(treefile))
 
@@ -40,10 +41,22 @@ def parse_tree(treefile, datadict, group,width):
 			except KeyError:
 				nstyle["fgcolor"] = colors.rgb2hex(pal[0])
 		else:
+			species = {}
 			for x in node.iter_descendants("preorder"):
 				if x.is_leaf():
 					this_node.append(x.name)
-			## only generate presence/absence for nodes containing 5+ leaves
+					s = x.name.split("_")[1]
+					if s in species:
+						species[s] += 1
+					else:
+						species[s] = 1
+			for c in compress:
+				try:
+					if float(species[c])/float(len(this_node)) > 0.95:
+						nstyle["draw_descendants"] = False
+						node.name = "{} clade".format(c)
+				except KeyError:
+					pass
 			count = 0
 			for t in this_node:
 				try:
@@ -52,7 +65,6 @@ def parse_tree(treefile, datadict, group,width):
 				except KeyError:
 					print t, "not in PyParanoid DB"
 			v = int(round(float(count)/float(len(this_node))*12))
-			print count, "out of", len(this_node), "\t", v
 			nstyle["fgcolor"] = colors.rgb2hex(pal[v])
 			nstyle["size"] = 3*math.sqrt(len(this_node))
 		node.set_style(nstyle)
@@ -76,8 +88,13 @@ def main():
 		width = args.width
 	else:
 		width = 12
+
+	if args.compress:
+		compress = args.compress.split(",")
+	else:
+		compress = []
 	datadict = parse_pyp(os.path.abspath(args.pypdir),args.group)
-	parse_tree(args.treefile, datadict, args.group,width)
+	parse_tree(args.treefile, datadict, args.group,width,compress)
 
 
 if __name__ == '__main__':
