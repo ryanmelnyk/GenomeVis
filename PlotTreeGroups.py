@@ -43,11 +43,11 @@ def make_matrix(outdir,strains,groups):
 
 def plot_clustergrid(df,prefix,groups,dpi):
 	fig, ax = plt.subplots()
-	hm = sns.heatmap(df, linewidths=.4,cbar=False,cmap="Greens",ax=ax,square=True,xticklabels=["" for x in range(df.shape[1])],yticklabels=["" for x in range(df.shape[0])])
+	hm = sns.heatmap(df, linewidths=0.2,cbar=False,cmap="Greens",ax=ax,square=True,xticklabels=["" for x in range(df.shape[1])],yticklabels=["" for x in range(df.shape[0])])
 	ax.yaxis.tick_right()
 	plt.yticks(rotation=0)
 	plt.xticks(rotation=-40)
-	plt.savefig('{}.png'.format(prefix),format='png',dpi=400)
+	plt.savefig('{}.png'.format(prefix),format='png',dpi=dpi)
 	plt.savefig('{}.svg'.format(prefix),format='svg')
 	return
 
