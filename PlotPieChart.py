@@ -74,7 +74,7 @@ def main():
 	for node in tree.iter_descendants("preorder"):
 		if node.is_leaf():
 			node.name = namedict[node.name]
-	tree.render("test.png",tree_style=ts,w=12,units="in")
+	tree.render("test.pdf",tree_style=ts,h=96,units="in")
 
 
 if __name__ == '__main__':

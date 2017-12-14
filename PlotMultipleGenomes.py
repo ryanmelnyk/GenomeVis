@@ -9,6 +9,7 @@ from Bio.Graphics import GenomeDiagram
 from reportlab.lib import colors
 import seaborn as sns
 from Bio.SeqFeature import FeatureLocation
+from reportlab.lib.units import inch
 
 def parse_args():
 	parser = argparse.ArgumentParser(description='''
@@ -20,6 +21,8 @@ and color-code surrounding genes based on homology.
 	parser.add_argument('name',type=str, help='name of plot for output file')
 	parser.add_argument('locus_mat',type=str,help="path to matrix file containing locus tag information")
 	parser.add_argument('--no_labels',action='store_true',help='use to hide labels')
+	parser.add_argument('--highlight_groups',type=str,help='file containing groups to highlight')
+	parser.add_argument('--pagesize',type=str, help="tuple of x,y for pagesize in inches")
 	return parser.parse_args()
 
 def parse_genbank(g):
@@ -68,10 +71,13 @@ def plot(seq, span, coords, g, GD, count, locus_tags, labels):
 					feature_set.add_feature(feat, sigil="BIGARROW", arrowshaft_height=1, arrowhead_length=.4,color="#D3D3D3", \
 						label=labels,name=feat.qualifiers['product'][0],label_strand=1,label_size = 8,label_position="middle", label_angle=20, \
 						border=colors.black)
-				feature_set.add_feature(feat, sigil="BIGARROW", arrowshaft_height=1, arrowhead_length=.4,color="#D3D3D3", \
-					label=True,name=feat.qualifiers[FIELD][0],label_strand=-1,label_size = 8,label_position="middle", label_angle=90, \
-					border=colors.black)
-				locus_tags[g[0].split(".")[0]].append(feat.qualifiers[FIELD][0].split(".")[0])
+				try:
+					feature_set.add_feature(feat, sigil="BIGARROW", arrowshaft_height=1, arrowhead_length=.4,color="#D3D3D3", \
+						label=True,name=feat.qualifiers[FIELD][0],label_strand=-1,label_size = 8,label_position="middle", label_angle=90, \
+						border=colors.black)
+					locus_tags[g[0].split(".")[0]].append(feat.qualifiers[FIELD][0].split(".")[0])
+				except KeyError:
+					pass
 		elif feat.type == "gene":
 			if g[2] == "ensembl" or g[2] == "refseq":
 				if int(feat.location.start) > (coords[0]-(span/2)) and int(feat.location.end) < (coords[1]+(span/2)):
@@ -86,18 +92,13 @@ def plot(seq, span, coords, g, GD, count, locus_tags, labels):
 
 	return
 
-def write(GD,name,span):
-	GD.draw(x=0.1,format="linear",\
-			orientation = "landscape", \
-			track_size=0.035,\
-			fragments=1,
-			start=0, end=span+2000
-	)
+def write(GD,name,span,k):
+	GD.draw(x=0.02,format="linear", orientation = "landscape", track_size=0.035, fragments=1, start=0, end=span+2000, pagesize=(k[0]*inch,k[1]*inch))
 	GD.write(name, "PDF")
 	# GD.write(name+".svg", "SVG")
 	return
 
-def find_homologs(GD, locus_tags, locus_mat):
+def find_homologs(GD, locus_tags, locus_mat,hl_groups):
 	groups = {}
 	count = 0
 	print locus_tags
@@ -109,10 +110,15 @@ def find_homologs(GD, locus_tags, locus_mat):
 				if t in vals:
 					found.append((strain,t))
 
-		if len(found) > 1:
+		if vals[0] in hl_groups:
+			for f in found:
+				groups[f[1]] = "HIGHLIGHT"
+		elif len(found) > 1:
 			for f in found:
 				groups[f[1]] = count
 			count += 1
+		else:
+			pass
 	print groups
 	return groups
 
@@ -123,7 +129,10 @@ def change_colors(GD, groups):
 		for s in t.get_sets():
 			for feat in s.get_features():
 				if feat.name.split(".")[0] in groups:
-					feat.color = cl[groups[feat.name.split(".")[0]]]
+					if groups[feat.name.split(".")[0]] == "HIGHLIGHT":
+						feat.color = colors.HexColor(u"#4df92a")
+					else:
+						feat.color = cl[groups[feat.name.split(".")[0]]]
 	return
 
 def main():
@@ -136,6 +145,12 @@ def main():
 		labels = False
 	else:
 		labels = True
+	if args.highlight_groups:
+		hl_groups = [line.rstrip().split("\t")[0] for line in open(os.path.abspath(args.highlight_groups),'r')]
+	else:
+		hl_groups = []
+
+
 
 	GD = GenomeDiagram.Diagram('gbk',name)
 	count = 1
@@ -146,9 +161,13 @@ def main():
 		contigseq, coords = parse_genbank(g)
 		plot(contigseq, span, coords, g, GD, count, locus_tags, labels)
 		count += 1
-	groups = find_homologs(GD, locus_tags, locus_mat)
+	groups = find_homologs(GD, locus_tags, locus_mat, hl_groups)
 	change_colors(GD, groups)
-	write(GD,name,span)
+	if args.pagesize:
+		k = [int(x) for x in args.pagesize.split(",")]
+	else:
+		k = [5,3]
+	write(GD,name,span,k)
 
 
 if __name__ == '__main__':

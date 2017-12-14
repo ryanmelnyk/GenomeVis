@@ -30,25 +30,24 @@ def make_matrix(outdir,strains,groups):
 	dat = {}
 	for g in groups:
 		present = []
-		for seq in SeqIO.parse(open(os.path.join(outdir,"homolog_faa",g[0]+".faa"),'r'),'fasta'):
+		for seq in SeqIO.parse(open(os.path.join(outdir,"homolog_faa",g+".faa"),'r'),'fasta'):
 			if str(seq.id).split("|")[0] not in present:
 				present.append(str(seq.id).split("|")[0])
-		for seq in SeqIO.parse(open(os.path.join(outdir,"prop_homolog_faa",g[0]+".faa"),'r'),'fasta'):
+		for seq in SeqIO.parse(open(os.path.join(outdir,"prop_homolog_faa",g+".faa"),'r'),'fasta'):
 			if str(seq.id).split("|")[0] not in present:
 				present.append(str(seq.id).split("|")[0])
-		dat[g[1]] = pd.Series(dict(zip(strains,[present.count(s) for s in strains])))
+		dat[g] = pd.Series(dict(zip(strains,[present.count(s) for s in strains])))
 	df = pd.DataFrame(dat).reindex(strains)
-	cols = [x[1] for x in groups]
-	return df[cols]
+	return df[groups]
 
-def plot_clustergrid(df,prefix,groups,dpi):
+def plot_clustergrid(df,prefix,dpi):
 	fig, ax = plt.subplots()
 	hm = sns.heatmap(df, linewidths=0.2,cbar=False,cmap="Greens",ax=ax,square=True,xticklabels=["" for x in range(df.shape[1])],yticklabels=["" for x in range(df.shape[0])])
 	ax.yaxis.tick_right()
 	plt.yticks(rotation=0)
 	plt.xticks(rotation=-40)
 	plt.savefig('{}.png'.format(prefix),format='png',dpi=dpi)
-	plt.savefig('{}.svg'.format(prefix),format='svg')
+	plt.savefig('{}.pdf'.format(prefix),format='pdf')
 	return
 
 def main():
@@ -59,11 +58,11 @@ def main():
 		dpi = 300
 	tree_loc = os.path.abspath(args.tree_loc)
 	outdir = os.path.abspath(args.outdir)
-	groups = [(v[0],v[1]) for v in [line.rstrip().split("\t") for line in open(os.path.abspath(args.groups),'r')]]
+	groups = [line.rstrip().split("\t")[0] for line in open(os.path.abspath(args.groups),'r')]
 	print groups
 	leaves = dist_from_tree(tree_loc)
 	df = make_matrix(outdir,leaves,groups)
-	plot_clustergrid(df,os.path.basename(args.groups).split(".")[0],groups,dpi)
+	plot_clustergrid(df,os.path.basename(args.groups).split(".")[0],dpi)
 
 
 
